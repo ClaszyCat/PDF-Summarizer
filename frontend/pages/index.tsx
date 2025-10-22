@@ -62,13 +62,35 @@ export default function Home() {
 
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
-      setFileName(e.target.files[0].name);
+      const selectedFile = e.target.files[0];
+
+      // Validate file type
+      if (!selectedFile.name.toLowerCase().endsWith(".pdf")) {
+        setError("❌ Please select a valid PDF file");
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // Validate file size (max 10MB = 10 * 1024 * 1024 bytes)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (selectedFile.size > maxSize) {
+        const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+        setError(`❌ File too large (${fileSizeMB}MB). Maximum size is 10MB`);
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // File is valid
+      setFile(selectedFile);
+      setFileName(selectedFile.name);
       setPdfUrl("");
       setError("");
+
       // Save filename to localStorage
       if (typeof window !== "undefined") {
-        localStorage.setItem("lastFileName", e.target.files[0].name);
+        localStorage.setItem("lastFileName", selectedFile.name);
         localStorage.setItem("lastUploadMethod", "file");
       }
     }
