@@ -32,6 +32,7 @@ export default function Home() {
   const [uploadMethod, setUploadMethod] = useState<"file" | "url">("file");
   const [fileName, setFileName] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   // Load saved data from localStorage on mount
   useEffect(() => {
@@ -217,6 +218,15 @@ export default function Home() {
     }
 
     setLoading(true);
+    setProgress(0);
+
+    // Simulate progress bar animation
+    const progressInterval = setInterval(() => {
+      setProgress((prev) => {
+        if (prev >= 90) return prev; // Stop at 90% until actual completion
+        return prev + Math.random() * 15;
+      });
+    }, 500);
 
     try {
       const formData = new FormData();
@@ -244,6 +254,7 @@ export default function Home() {
       );
 
       if (response.data.success) {
+        setProgress(100); // Complete the progress bar
         setSummary(response.data.summary);
         setMetadata(response.data.metadata);
 
@@ -256,12 +267,19 @@ export default function Home() {
         }
       }
     } catch (err: any) {
+      clearInterval(progressInterval);
+      setProgress(0);
       const errorMessage =
         err.response?.data?.error || err.message || "An error occurred";
       setError(errorMessage);
       console.error("Error:", err);
     } finally {
-      setLoading(false);
+      clearInterval(progressInterval);
+      setProgress(100); // Ensure it completes
+      setTimeout(() => {
+        setLoading(false);
+        setProgress(0);
+      }, 500); // Small delay to show 100% before closing
     }
   };
 
@@ -298,6 +316,45 @@ export default function Home() {
         />
         <link rel="apple-touch-icon" href="/logo claszycat.png" />
       </Head>
+
+      {/* Full-Screen Loading Overlay */}
+      {loading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center">
+          <div className="bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4">
+            <div className="text-center mb-6">
+              <h3 className="text-xl font-bold text-gray-900 mb-2">
+                Processing Your PDF
+              </h3>
+              <p className="text-gray-600">
+                Extracting text and generating AI summary...
+              </p>
+            </div>
+
+            {/* Progress Bar */}
+            <div className="w-full bg-gray-200 rounded-full h-4 mb-4 overflow-hidden">
+              <div
+                className="bg-gradient-to-r from-gray-700 via-gray-900 to-black h-4 rounded-full transition-all duration-500 ease-out flex items-center justify-end"
+                style={{ width: `${progress}%` }}
+              >
+                <div className="w-2 h-full bg-white opacity-50 animate-pulse"></div>
+              </div>
+            </div>
+
+            {/* Percentage Display */}
+            <div className="flex justify-between items-center">
+              <p className="text-sm text-gray-500">
+                {progress < 30 && "Reading PDF..."}
+                {progress >= 30 && progress < 70 && "Extracting text..."}
+                {progress >= 70 && progress < 100 && "Generating summary..."}
+                {progress === 100 && "Complete!"}
+              </p>
+              <p className="text-lg font-bold text-gray-900">
+                {Math.round(progress)}%
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
