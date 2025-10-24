@@ -34,7 +34,9 @@ export default function Home() {
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [isOnline, setIsOnline] = useState(true);
-  const [backendStatus, setBackendStatus] = useState<"online" | "offline" | "checking">("checking");
+  const [backendStatus, setBackendStatus] = useState<
+    "online" | "offline" | "checking"
+  >("checking");
 
   // Check backend connection status
   useEffect(() => {
@@ -253,13 +255,17 @@ export default function Home() {
 
     // Check internet connection
     if (!isOnline) {
-      setError("❌ No internet connection. Please check your network and try again.");
+      setError(
+        "❌ No internet connection. Please check your network and try again."
+      );
       return;
     }
 
     // Check backend status
     if (backendStatus === "offline") {
-      setError("❌ Backend server is offline. Please start the backend server and try again.");
+      setError(
+        "❌ Backend server is offline. Please start the backend server and try again."
+      );
       return;
     }
 
