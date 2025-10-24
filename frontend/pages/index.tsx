@@ -37,6 +37,8 @@ export default function Home() {
   const [backendStatus, setBackendStatus] = useState<
     "online" | "offline" | "checking"
   >("checking");
+  const [showUploadSuccess, setShowUploadSuccess] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   // Check backend connection status
   useEffect(() => {
@@ -159,6 +161,21 @@ export default function Home() {
       setPdfUrl("");
       setError("");
 
+      // Show success notification
+      setShowUploadSuccess(true);
+      setIsClosing(false);
+
+      // Start fade-out after 1.2 seconds
+      setTimeout(() => {
+        setIsClosing(true);
+      }, 1200);
+
+      // Completely hide after fade-out completes (1.2s + 0.3s animation)
+      setTimeout(() => {
+        setShowUploadSuccess(false);
+        setIsClosing(false);
+      }, 1500);
+
       // Save filename to localStorage
       if (typeof window !== "undefined") {
         localStorage.setItem("lastFileName", selectedFile.name);
@@ -238,6 +255,21 @@ export default function Home() {
       setFileName(selectedFile.name);
       setPdfUrl("");
       setError("");
+
+      // Show success notification
+      setShowUploadSuccess(true);
+      setIsClosing(false);
+
+      // Start fade-out after 1.2 seconds
+      setTimeout(() => {
+        setIsClosing(true);
+      }, 1200);
+
+      // Completely hide after fade-out completes (1.2s + 0.3s animation)
+      setTimeout(() => {
+        setShowUploadSuccess(false);
+        setIsClosing(false);
+      }, 1500);
 
       // Save filename to localStorage
       if (typeof window !== "undefined") {
@@ -380,6 +412,52 @@ export default function Home() {
         <link rel="apple-touch-icon" href="/logo claszycat.png" />
       </Head>
 
+      {/* File Upload Success Notification */}
+      {showUploadSuccess && (
+        <div
+          className={`fixed inset-0 bg-black backdrop-blur-sm z-50 flex items-center justify-center transition-opacity duration-300 ${
+            isClosing ? "bg-opacity-0" : "bg-opacity-50"
+          }`}
+        >
+          <div
+            className={`bg-white rounded-2xl p-8 shadow-2xl max-w-md w-full mx-4 ${
+              isClosing ? "animate-fade-out" : "animate-scale-in"
+            }`}
+          >
+            <div className="text-center">
+              {/* Checkmark Icon */}
+              <div className="mb-4 flex justify-center">
+                <div className="bg-green-500 rounded-full p-3">
+                  <svg
+                    className="w-12 h-12 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={3}
+                      d="M5 13l4 4L19 7"
+                    />
+                  </svg>
+                </div>
+              </div>
+
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                File Uploaded Successfully!
+              </h3>
+              <p className="text-gray-600 mb-1">
+                Your PDF is ready to be processed
+              </p>
+              <p className="text-sm font-medium text-gray-900 bg-gray-100 px-4 py-2 rounded-lg inline-block">
+                📄 {fileName}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Full-Screen Loading Overlay */}
       {loading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 backdrop-blur-sm z-50 flex items-center justify-center">
@@ -437,30 +515,6 @@ export default function Home() {
                 }`}
               ></div>
               {isOnline ? "Internet Connected" : "No Internet"}
-            </div>
-
-            {/* Backend API Status */}
-            <div
-              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
-                backendStatus === "online"
-                  ? "bg-blue-100 text-blue-800"
-                  : backendStatus === "offline"
-                  ? "bg-orange-100 text-orange-800"
-                  : "bg-gray-100 text-gray-800"
-              }`}
-            >
-              <div
-                className={`w-2 h-2 rounded-full ${
-                  backendStatus === "online"
-                    ? "bg-blue-500 animate-pulse"
-                    : backendStatus === "offline"
-                    ? "bg-orange-500"
-                    : "bg-gray-500 animate-pulse"
-                }`}
-              ></div>
-              {backendStatus === "online" && "Backend Online"}
-              {backendStatus === "offline" && "Backend Offline"}
-              {backendStatus === "checking" && "Checking..."}
             </div>
           </div>
 
