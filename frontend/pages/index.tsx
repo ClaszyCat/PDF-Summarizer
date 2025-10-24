@@ -33,6 +33,51 @@ export default function Home() {
   const [fileName, setFileName] = useState<string>("");
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [isOnline, setIsOnline] = useState(true);
+  const [backendStatus, setBackendStatus] = useState<"online" | "offline" | "checking">("checking");
+
+  // Check backend connection status
+  useEffect(() => {
+    const checkBackendStatus = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/api/health`, {
+          timeout: 5000,
+        });
+        if (response.data.status === "ok") {
+          setBackendStatus("online");
+        } else {
+          setBackendStatus("offline");
+        }
+      } catch (err) {
+        setBackendStatus("offline");
+      }
+    };
+
+    // Check immediately on mount
+    checkBackendStatus();
+
+    // Check every 30 seconds
+    const interval = setInterval(checkBackendStatus, 30000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Monitor browser online/offline status
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    // Set initial status
+    setIsOnline(navigator.onLine);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, []);
 
   // Load saved data from localStorage on mount
   useEffect(() => {
@@ -206,6 +251,18 @@ export default function Home() {
     setSummary("");
     setMetadata(null);
 
+    // Check internet connection
+    if (!isOnline) {
+      setError("❌ No internet connection. Please check your network and try again.");
+      return;
+    }
+
+    // Check backend status
+    if (backendStatus === "offline") {
+      setError("❌ Backend server is offline. Please start the backend server and try again.");
+      return;
+    }
+
     // Validation
     if (uploadMethod === "file" && !file) {
       setError("Please select a PDF file");
@@ -358,6 +415,49 @@ export default function Home() {
 
       <main className="min-h-screen bg-gradient-to-br from-gray-50 via-gray-100 to-white py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-5xl mx-auto">
+          {/* Status Indicators */}
+          <div className="flex justify-end gap-3 mb-4">
+            {/* Browser Online/Offline Status */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                isOnline
+                  ? "bg-green-100 text-green-800"
+                  : "bg-red-100 text-red-800"
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  isOnline ? "bg-green-500 animate-pulse" : "bg-red-500"
+                }`}
+              ></div>
+              {isOnline ? "Internet Connected" : "No Internet"}
+            </div>
+
+            {/* Backend API Status */}
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium ${
+                backendStatus === "online"
+                  ? "bg-blue-100 text-blue-800"
+                  : backendStatus === "offline"
+                  ? "bg-orange-100 text-orange-800"
+                  : "bg-gray-100 text-gray-800"
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full ${
+                  backendStatus === "online"
+                    ? "bg-blue-500 animate-pulse"
+                    : backendStatus === "offline"
+                    ? "bg-orange-500"
+                    : "bg-gray-500 animate-pulse"
+                }`}
+              ></div>
+              {backendStatus === "online" && "Backend Online"}
+              {backendStatus === "offline" && "Backend Offline"}
+              {backendStatus === "checking" && "Checking..."}
+            </div>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-12">
             <div className="flex items-center justify-center mb-4">
