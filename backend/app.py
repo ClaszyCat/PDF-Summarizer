@@ -221,6 +221,15 @@ def summarize():
             if not file.filename.lower().endswith('.pdf'):
                 return jsonify({"error": "File must be a PDF"}), 400
             
+            # Validate that it's a real PDF by checking magic bytes
+            file.seek(0)
+            header = file.read(5)
+            file.seek(0)  # Reset file pointer for later reading
+            
+            # PDF files must start with "%PDF-" (magic bytes)
+            if not header.startswith(b'%PDF-'):
+                return jsonify({"error": "Invalid PDF file. This may be a renamed file."}), 400
+            
             print(f"📄 Processing uploaded file: {file.filename}")
             pdf_text = extract_text_from_pdf(file)
         

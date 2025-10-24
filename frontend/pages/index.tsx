@@ -31,6 +31,7 @@ export default function Home() {
   const [metadata, setMetadata] = useState<SummaryMetadata | null>(null);
   const [uploadMethod, setUploadMethod] = useState<"file" | "url">("file");
   const [fileName, setFileName] = useState<string>("");
+  const [isDragging, setIsDragging] = useState(false);
 
   // Load saved data from localStorage on mount
   useEffect(() => {
@@ -60,7 +61,7 @@ export default function Home() {
     }
   }, [summary, metadata]);
 
-  const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const selectedFile = e.target.files[0];
 
@@ -77,6 +78,108 @@ export default function Home() {
       if (selectedFile.size > maxSize) {
         const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
         setError(`❌ File too large (${fileSizeMB}MB). Maximum size is 10MB`);
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // Validate that it's a real PDF by checking magic bytes (file signature)
+      try {
+        const buffer = await selectedFile.slice(0, 5).arrayBuffer();
+        const arr = new Uint8Array(buffer);
+        const header = String.fromCharCode.apply(null, Array.from(arr));
+
+        // PDF files start with "%PDF-" (magic bytes: 0x25 0x50 0x44 0x46 0x2D)
+        if (!header.startsWith("%PDF-")) {
+          setError(
+            "❌ This file is not a valid PDF. It may be a renamed file."
+          );
+          setFile(null);
+          setFileName("");
+          return;
+        }
+      } catch (err) {
+        setError("❌ Error validating file format");
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // File is valid
+      setFile(selectedFile);
+      setFileName(selectedFile.name);
+      setPdfUrl("");
+      setError("");
+
+      // Save filename to localStorage
+      if (typeof window !== "undefined") {
+        localStorage.setItem("lastFileName", selectedFile.name);
+        localStorage.setItem("lastUploadMethod", "file");
+      }
+    }
+  };
+
+  const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+  };
+
+  const handleDrop = async (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      const selectedFile = files[0];
+
+      // Validate file type
+      if (!selectedFile.name.toLowerCase().endsWith(".pdf")) {
+        setError("❌ Please select a valid PDF file");
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // Validate file size (max 10MB = 10 * 1024 * 1024 bytes)
+      const maxSize = 10 * 1024 * 1024; // 10MB in bytes
+      if (selectedFile.size > maxSize) {
+        const fileSizeMB = (selectedFile.size / (1024 * 1024)).toFixed(2);
+        setError(`❌ File too large (${fileSizeMB}MB). Maximum size is 10MB`);
+        setFile(null);
+        setFileName("");
+        return;
+      }
+
+      // Validate that it's a real PDF by checking magic bytes (file signature)
+      try {
+        const buffer = await selectedFile.slice(0, 5).arrayBuffer();
+        const arr = new Uint8Array(buffer);
+        const header = String.fromCharCode.apply(null, Array.from(arr));
+
+        // PDF files start with "%PDF-" (magic bytes: 0x25 0x50 0x44 0x46 0x2D)
+        if (!header.startsWith("%PDF-")) {
+          setError(
+            "❌ This file is not a valid PDF. It may be a renamed file."
+          );
+          setFile(null);
+          setFileName("");
+          return;
+        }
+      } catch (err) {
+        setError("❌ Error validating file format");
         setFile(null);
         setFileName("");
         return;
@@ -290,7 +393,17 @@ export default function Home() {
                   <label className="block text-sm font-medium text-gray-700 mb-2">
                     Select PDF File
                   </label>
-                  <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-lg hover:border-gray-600 transition-colors">
+                  <div
+                    onDragEnter={handleDragEnter}
+                    onDragOver={handleDragOver}
+                    onDragLeave={handleDragLeave}
+                    onDrop={handleDrop}
+                    className={`mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-dashed rounded-lg transition-all ${
+                      isDragging
+                        ? "border-gray-900 bg-gray-100 scale-105"
+                        : "border-gray-300 hover:border-gray-600"
+                    }`}
+                  >
                     <div className="space-y-1 text-center">
                       <svg
                         className="mx-auto h-12 w-12 text-gray-400"
@@ -317,7 +430,9 @@ export default function Home() {
                         </label>
                         <p className="pl-1">or drag and drop</p>
                       </div>
-                      <p className="text-xs text-gray-500">PDF files only</p>
+                      <p className="text-xs text-gray-500">
+                        PDF files only (max 10MB)
+                      </p>
                     </div>
                   </div>
                   {(file || fileName) && (
